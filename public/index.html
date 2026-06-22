@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f9fafb" />
   <meta name="msapplication-navbutton-color" content="#f9fafb" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="description" content="" />
+  <meta name="description" content="BingwuAI 语聊实时语音翻译" />
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <meta name="application-name" content="BingwuAI 语聊" />
   <meta name="apple-mobile-web-app-title" content="BingwuAI" />
@@ -14,11 +14,11 @@
   <meta property="og:locale" content="zh_CN" />
   <meta property="og:site_name" content="BingwuAI" />
   <meta property="og:title" content="BingwuAI 语聊 - 实时语音翻译" />
-  <meta property="og:description" content="" />
+  <meta property="og:description" content="浏览器内实时语音翻译工作台" />
   <meta property="og:image" content="/favicon.svg" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="BingwuAI 语聊" />
-  <meta name="twitter:description" content="" />
+  <meta name="twitter:description" content="浏览器内实时语音翻译工作台" />
   <meta name="twitter:image" content="/favicon.svg" />
   <title>BingwuAI 语聊</title>
   <link rel="icon" href="./favicon.svg" />
@@ -64,6 +64,144 @@
 </head>
 
 <body>
+  <div id="app" v-cloak>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">B</span>
+          <div>
+            <h1>BingwuAI 语聊</h1>
+            <p>{{ statusLabel }}</p>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="connection-pill" :class="connection">
+            <component :is="isLive ? Wifi : WifiOff" :size="16"></component>
+            <span>{{ connectionText }}</span>
+          </div>
+          <button class="icon-button" type="button" @click="cycleTheme" :title="themeTitle" :aria-label="themeTitle">
+            <component :is="themeIcon" :size="18"></component>
+          </button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="control-panel">
+          <div class="panel-section">
+            <div class="section-title">
+              <Languages :size="18"></Languages>
+              <span>语言</span>
+            </div>
+
+            <label class="field">
+              <span>目标语言</span>
+              <select v-model="settings.targetLanguage" :disabled="isBusy">
+                <option v-for="language in languages" :key="language.code" :value="language.code">
+                  {{ language.name }}
+                </option>
+              </select>
+            </label>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-title">
+              <Settings :size="18"></Settings>
+              <span>设置</span>
+            </div>
+
+            <label class="field">
+              <span>声音</span>
+              <select v-model="settings.voiceName" :disabled="isBusy">
+                <option v-for="voice in voices" :key="voice.name" :value="voice.name">
+                  {{ voice.name }} - {{ voice.characteristics }}
+                </option>
+              </select>
+            </label>
+
+            <label class="toggle-row">
+              <span>自动播放</span>
+              <input type="checkbox" v-model="settings.autoPlay" />
+            </label>
+          </div>
+
+          <div class="call-panel">
+            <button class="call-button" type="button" :class="{ active: isLive }" @click="toggleSession"
+              :disabled="connection === 'closing'">
+              <component :is="isLive || connection === 'connecting' ? PhoneOff : Phone" :size="26"></component>
+              <span>{{ callButtonText }}</span>
+            </button>
+
+            <div class="meter-grid">
+              <div class="meter-card">
+                <div class="meter-label">
+                  <Mic :size="15"></Mic>
+                  <span>输入</span>
+                </div>
+                <div class="meter">
+                  <span :style="{ width: inputMeterWidth }"></span>
+                </div>
+              </div>
+
+              <div class="meter-card">
+                <div class="meter-label">
+                  <Volume2 :size="15"></Volume2>
+                  <span>输出</span>
+                </div>
+                <div class="meter output">
+                  <span :style="{ width: outputMeterWidth }"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="transcript-panel">
+          <div class="live-grid">
+            <article class="live-block">
+              <div class="block-heading">
+                <span>原文</span>
+                <small>转写</small>
+              </div>
+              <p>{{ currentInput || placeholderInput }}</p>
+            </article>
+
+            <article class="live-block translated">
+              <div class="block-heading">
+                <span>{{ targetLanguageName }}</span>
+                <small>译文</small>
+              </div>
+              <p>{{ currentOutput || placeholderOutput }}</p>
+            </article>
+          </div>
+
+          <div class="history-head">
+            <h2>会话</h2>
+            <button class="text-button" type="button" @click="clearHistory" :disabled="!history.length">
+              <Trash2 :size="16"></Trash2>
+              <span>清空</span>
+            </button>
+          </div>
+
+          <div class="history-list" v-if="history.length">
+            <article class="history-item" v-for="item in history" :key="item.id">
+              <time>{{ item.time }}</time>
+              <p class="source-text">{{ item.source }}</p>
+              <p class="target-text">{{ item.target }}</p>
+            </article>
+          </div>
+
+          <div class="empty-state" v-else>
+            <Languages :size="28"></Languages>
+            <span>等待实时语音</span>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <Toaster position="top-center" rich-colors></Toaster>
+  </div>
+
   <script type="importmap">
     {
       "imports": {
@@ -73,13 +211,346 @@
     }
   </script>
   <script type="module">
-    import { createApp, nextTick } from "vue";
-    import MarkdownIt from "https://esm.sh/markdown-it@14.1.0";
-    import DOMPurify from "https://esm.sh/dompurify@3.4.7";
+    import { computed, createApp, onBeforeUnmount, reactive, ref, watch } from "vue";
     import {
+      Languages,
+      Mic,
+      Monitor,
+      Moon,
       Phone,
+      PhoneOff,
+      Settings,
+      Sun,
+      Trash2,
+      Volume2,
+      Wifi,
+      WifiOff,
     } from "https://esm.sh/lucide-vue-next@1.0.0/es2022/lucide-vue-next.mjs";
     import { toast, Toaster } from "sonner";
+    import { createAudioService } from "./utils/audio-service.js";
+    import { GEMINI_TRANSLATE_LANGUAGES, GEMINI_VOICES } from "./utils/const.js";
+    function mergeText(current, next) {
+      if (!next) return current;
+      if (!current) return next;
+      if (next.startsWith(current)) return next;
+      if (current.endsWith(next)) return current;
+      return `${current}${current.endsWith(" ") ? "" : " "}${next}`;
+    }
+
+    function averageLevel(values) {
+      if (!values.length) return 0;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    createApp({
+      components: {
+        Languages,
+        Mic,
+        Phone,
+        PhoneOff,
+        Settings,
+        Toaster,
+        Trash2,
+        Volume2,
+        Wifi,
+        WifiOff,
+      },
+      setup() {
+        const settings = reactive({
+          targetLanguage: "en",
+          voiceName: "Puck",
+          autoPlay: true,
+        });
+
+        const connection = ref("idle");
+        const sessionReady = ref(false);
+        const currentInput = ref("");
+        const currentOutput = ref("");
+        const history = ref([]);
+        const inputLevel = ref(0);
+        const outputLevel = ref(0);
+        const themeMode = ref(localStorage.getItem("geminiThemeMode") || "system");
+
+        let socket = null;
+        let meterFrame = 0;
+        const audioService = createAudioService({
+          getVoiceEnabled: () => settings.autoPlay,
+          shouldSendAudio: () => socket?.readyState === WebSocket.OPEN && sessionReady.value,
+          onAudioInput: ({ data, mimeType }) => {
+            if (socket?.readyState !== WebSocket.OPEN) return;
+            socket?.send(JSON.stringify({
+              realtimeInput: {
+                audio: { mimeType, data },
+              },
+            }));
+          },
+          onMicEnded: () => {
+            if (connection.value === "live") {
+              toast.error("麦克风已断开");
+              stopSession();
+            }
+          },
+        });
+        watch(() => settings.autoPlay, () => audioService.syncPlaybackVolume());
+
+        const isLive = computed(() => connection.value === "live");
+        const isBusy = computed(() => ["connecting", "live", "closing"].includes(connection.value));
+        const targetLanguageName = computed(() => GEMINI_TRANSLATE_LANGUAGES.find((item) => item.code === settings.targetLanguage)?.name || settings.targetLanguage);
+        const placeholderInput = computed(() => isLive.value ? "正在监听..." : "点击通话开始");
+        const placeholderOutput = computed(() => isLive.value ? "等待翻译..." : "翻译结果将在这里显示");
+        const inputMeterWidth = computed(() => `${Math.round(inputLevel.value * 100)}%`);
+        const outputMeterWidth = computed(() => `${Math.round(outputLevel.value * 100)}%`);
+        const callButtonText = computed(() => {
+          if (connection.value === "connecting") return "连接中";
+          if (connection.value === "closing") return "结束中";
+          return isLive.value ? "结束" : "开始";
+        });
+        const connectionText = computed(() => {
+          const labels = {
+            idle: "未连接",
+            connecting: "连接中",
+            live: "实时",
+            closing: "关闭中",
+            error: "异常",
+          };
+          return labels[connection.value] || "未连接";
+        });
+        const statusLabel = computed(() => {
+          if (connection.value === "connecting") return "正在连接 Gemini Live";
+          if (connection.value === "live" && sessionReady.value) return `目标语言 ${targetLanguageName.value}`;
+          if (connection.value === "error") return "会话异常";
+          return "实时语音翻译";
+        });
+        const themeIcon = computed(() => {
+          if (themeMode.value === "light") return Sun;
+          if (themeMode.value === "dark") return Moon;
+          return Monitor;
+        });
+        const themeTitle = computed(() => {
+          if (themeMode.value === "light") return "浅色";
+          if (themeMode.value === "dark") return "深色";
+          return "跟随系统";
+        });
+
+        function cycleTheme() {
+          const modes = ["system", "light", "dark"];
+          const next = modes[(modes.indexOf(themeMode.value) + 1) % modes.length];
+          themeMode.value = next;
+          localStorage.setItem("geminiThemeMode", next);
+          window.applyGeminiTheme?.(next);
+        }
+
+        function buildSocketUrl() {
+          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+          return `${protocol}//${window.location.host}/ws`;
+        }
+
+        function sendSetup() {
+          socket?.send(JSON.stringify({
+            config: {
+              targetLanguage: settings.targetLanguage,
+              voiceName: settings.voiceName,
+            }
+          }));
+        }
+
+        function startMeterLoop() {
+          if (meterFrame) return;
+          const tick = () => {
+            inputLevel.value = averageLevel(audioService.getUserWaveform(8));
+            outputLevel.value = averageLevel(audioService.getAiWaveform(8));
+            meterFrame = window.requestAnimationFrame(tick);
+          };
+          tick();
+        }
+
+        function stopMeterLoop() {
+          if (meterFrame) window.cancelAnimationFrame(meterFrame);
+          meterFrame = 0;
+          inputLevel.value = 0;
+          outputLevel.value = 0;
+        }
+
+        function commitTurn() {
+          if (!currentInput.value && !currentOutput.value) return;
+
+          history.value.unshift({
+            id: crypto.randomUUID(),
+            time: new Intl.DateTimeFormat("zh-CN", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }).format(new Date()),
+            source: currentInput.value || " ",
+            target: currentOutput.value || " ",
+          });
+
+          currentInput.value = "";
+          currentOutput.value = "";
+        }
+
+        function handleGeminiMessage(event) {
+          let message;
+          try {
+            message = typeof event.data === "string" ? JSON.parse(event.data) : null;
+          } catch {
+            return;
+          }
+
+          if (!message) return;
+
+          if (message.type === "error" || message.error) {
+            toast.error(message.message || message.error?.message || "实时翻译连接异常");
+            return;
+          }
+
+          if (message.setupComplete) {
+            sessionReady.value = true;
+            connection.value = "live";
+            return;
+          }
+
+          const content = message.serverContent || message;
+          const inputText = content.inputTranscription?.text || message.inputTranscription?.text;
+          const outputText = content.outputTranscription?.text || message.outputTranscription?.text;
+
+          currentInput.value = mergeText(currentInput.value, inputText);
+          currentOutput.value = mergeText(currentOutput.value, outputText);
+
+          const parts = content.modelTurn?.parts || message.modelTurn?.parts || [];
+          for (const part of parts) {
+            const inlineData = part.inlineData || part.inline_data;
+            const mimeType = inlineData?.mimeType || inlineData?.mime_type;
+            if (inlineData?.data && mimeType?.startsWith("audio/")) {
+              audioService.playPcm(inlineData.data, mimeType);
+            }
+          }
+
+          if (content.turnComplete || message.turnComplete) commitTurn();
+        }
+
+        async function startSession() {
+          if (connection.value === "connecting" || connection.value === "live") return;
+
+          try {
+            connection.value = "connecting";
+            sessionReady.value = false;
+            currentInput.value = "";
+            currentOutput.value = "";
+
+            await audioService.checkMicAvailable();
+            await audioService.ensureAudio();
+            audioService.stopAiAudioPlayback();
+            startMeterLoop();
+
+            socket = new WebSocket(buildSocketUrl());
+            socket.addEventListener("open", async () => {
+              try {
+                sendSetup();
+                await audioService.startMic();
+              } catch (error) {
+                connection.value = "error";
+                sessionReady.value = false;
+                audioService.stopMic();
+                stopMeterLoop();
+                socket?.close(1011, "microphone failed");
+                toast.error(error.message || "无法启动麦克风");
+              }
+            });
+            socket.addEventListener("message", handleGeminiMessage);
+            socket.addEventListener("close", () => {
+              if (connection.value !== "closing") connection.value = "idle";
+              sessionReady.value = false;
+              audioService.stopMic();
+              audioService.stopAiAudioPlayback();
+              stopMeterLoop();
+            });
+            socket.addEventListener("error", () => {
+              connection.value = "error";
+              sessionReady.value = false;
+              audioService.stopMic();
+              audioService.stopAiAudioPlayback();
+              stopMeterLoop();
+              toast.error("WebSocket 连接失败");
+            });
+          } catch (error) {
+            connection.value = "error";
+            sessionReady.value = false;
+            audioService.stopMic();
+            audioService.stopAiAudioPlayback();
+            stopMeterLoop();
+            toast.error(error.message || "无法开始通话");
+          }
+        }
+
+        function stopSession() {
+          connection.value = "closing";
+          sessionReady.value = false;
+          commitTurn();
+          audioService.stopMic();
+          audioService.stopAiAudioPlayback();
+          stopMeterLoop();
+
+          if (socket) {
+            socket.close(1000, "user stopped");
+            socket = null;
+          }
+
+          connection.value = "idle";
+        }
+
+        function toggleSession() {
+          if (isLive.value || connection.value === "connecting") stopSession();
+          else startSession();
+        }
+
+        function clearHistory() {
+          history.value = [];
+        }
+
+        onBeforeUnmount(() => {
+          stopSession();
+          audioService.destroy();
+        });
+
+        return {
+          Languages,
+          Mic,
+          Monitor,
+          Moon,
+          Phone,
+          PhoneOff,
+          Settings,
+          Sun,
+          Trash2,
+          Volume2,
+          Wifi,
+          WifiOff,
+          callButtonText,
+          clearHistory,
+          connection,
+          connectionText,
+          currentInput,
+          currentOutput,
+          cycleTheme,
+          history,
+          inputMeterWidth,
+          isBusy,
+          isLive,
+          languages: GEMINI_TRANSLATE_LANGUAGES,
+          outputMeterWidth,
+          placeholderInput,
+          placeholderOutput,
+          settings,
+          statusLabel,
+          targetLanguageName,
+          themeIcon,
+          themeTitle,
+          toggleSession,
+          voices: GEMINI_VOICES,
+        };
+      },
+    }).mount("#app");
   </script>
 </body>
 
