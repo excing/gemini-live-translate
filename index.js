@@ -34,19 +34,10 @@ async function proxyGeminiLive(request, env) {
     model: GEMINI_TRANSLATE_MODEL,
     generationConfig: {
       responseModalities: ['AUDIO'],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
       translationConfig: {
         targetLanguageCode: 'en',
         echoTargetLanguage: true
       }
-    },
-    systemInstruction: {
-      parts: [
-        {
-          text:
-            "You are a live interpreter. Respond only with the translated speech. Keep names, numbers, tone, and meaning accurate.",
-        },
-      ],
     },
   };
   // console.log("111113");
@@ -77,7 +68,6 @@ async function proxyGeminiLive(request, env) {
       const config = data.config;
       // console.log('111111672', config);
       setup.generationConfig.translationConfig.targetLanguageCode = config.targetLanguage || 'en';
-      setup.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName = config.voiceName;
       configReceived = true;
       // console.log('111111673', setup);
       sendGeminiSetup();

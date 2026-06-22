@@ -110,15 +110,6 @@
               <span>设置</span>
             </div>
 
-            <label class="field">
-              <span>声音</span>
-              <select v-model="settings.voiceName" :disabled="isBusy">
-                <option v-for="voice in voices" :key="voice.name" :value="voice.name">
-                  {{ voice.name }} - {{ voice.characteristics }}
-                </option>
-              </select>
-            </label>
-
             <label class="toggle-row">
               <span>自动播放</span>
               <input type="checkbox" v-model="settings.autoPlay" />
@@ -258,7 +249,6 @@
       setup() {
         const settings = reactive({
           targetLanguage: "en",
-          voiceName: "Puck",
           autoPlay: true,
         });
 
@@ -349,7 +339,6 @@
           socket?.send(JSON.stringify({
             config: {
               targetLanguage: settings.targetLanguage,
-              voiceName: settings.voiceName,
             }
           }));
         }
