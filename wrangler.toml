@@ -1,4 +1,4 @@
-name = "gemini-audio-worker-dev"
+name = "gemini-live-translate"
 main = "index.js"
 compatibility_date = "2026-06-22"
 
