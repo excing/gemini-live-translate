@@ -1,0 +1,12 @@
+name = "gemini-audio-worker-dev"
+main = "index.js"
+compatibility_date = "2026-06-22"
+
+# 需要的 secrets (用 `wrangler secret put <NAME>` 配置):
+#   GEMINI_API_KEY        Gemini Live API key
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "none"
+run_worker_first = ["/ws", "/ws/*", "/api", "/api/*"]

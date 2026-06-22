@@ -1,0 +1,86 @@
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f9fafb" />
+  <meta name="msapplication-navbutton-color" content="#f9fafb" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="description" content="" />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="application-name" content="BingwuAI 语聊" />
+  <meta name="apple-mobile-web-app-title" content="BingwuAI" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="zh_CN" />
+  <meta property="og:site_name" content="BingwuAI" />
+  <meta property="og:title" content="BingwuAI 语聊 - 实时语音翻译" />
+  <meta property="og:description" content="" />
+  <meta property="og:image" content="/favicon.svg" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="BingwuAI 语聊" />
+  <meta name="twitter:description" content="" />
+  <meta name="twitter:image" content="/favicon.svg" />
+  <title>BingwuAI 语聊</title>
+  <link rel="icon" href="./favicon.svg" />
+  <script>
+    (() => {
+      const THEME_COLORS = {
+        light: { browser: '#f9fafb', appleStatusBar: 'default' },
+        dark: { browser: '#09090B', appleStatusBar: 'black-translucent' },
+      };
+      const root = document.documentElement;
+      const media = window.matchMedia?.('(prefers-color-scheme: dark)');
+      const getMeta = (name) => {
+        let meta = document.querySelector(`meta[name="${name}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.name = name;
+          document.head.appendChild(meta);
+        }
+        return meta;
+      };
+      const resolveTheme = (themeMode) => themeMode === 'system'
+        ? (media?.matches ? 'dark' : 'light')
+        : themeMode;
+
+      window.applyGeminiTheme = (themeMode = localStorage.getItem('geminiThemeMode') || 'system') => {
+        const theme = THEME_COLORS[resolveTheme(themeMode)] || THEME_COLORS.light;
+        root.dataset.theme = themeMode;
+        getMeta('theme-color').content = theme.browser;
+        getMeta('msapplication-navbutton-color').content = theme.browser;
+        getMeta('apple-mobile-web-app-status-bar-style').content = theme.appleStatusBar;
+      };
+
+      window.applyGeminiTheme();
+      const handleSystemThemeChange = () => {
+        if ((localStorage.getItem('geminiThemeMode') || 'system') === 'system') window.applyGeminiTheme('system');
+      };
+      if (media?.addEventListener) media.addEventListener('change', handleSystemThemeChange);
+      else if (media?.addListener) media.addListener(handleSystemThemeChange);
+    })();
+  </script>
+  <link rel="stylesheet" href="./index.css" />
+  <link rel="stylesheet" href="https://esm.sh/vue-sonner@2.0.9/lib/index.css" />
+</head>
+
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://unpkg.com/vue@3.5.34/dist/vue.esm-browser.prod.js",
+        "sonner": "https://unpkg.com/vue-sonner"
+      }
+    }
+  </script>
+  <script type="module">
+    import { createApp, nextTick } from "vue";
+    import MarkdownIt from "https://esm.sh/markdown-it@14.1.0";
+    import DOMPurify from "https://esm.sh/dompurify@3.4.7";
+    import {
+      Phone,
+    } from "https://esm.sh/lucide-vue-next@1.0.0/es2022/lucide-vue-next.mjs";
+    import { toast, Toaster } from "sonner";
+  </script>
+</body>
+
+</html>
